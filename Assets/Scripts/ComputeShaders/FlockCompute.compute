@@ -1,0 +1,50 @@
+﻿#pragma kernel CSMain
+
+static const int threadGroupSize = 512;
+
+struct Boid
+{
+    float3 position;
+    float3 direction;
+
+    float3 flockHeading;
+    float3 flockCenter;
+    float3 separationHeading;
+    int flockSize;
+};
+
+RWStructuredBuffer<Boid> boids;
+int boidCount;
+float perceptionRadius;
+float avoidanceRadius;
+
+[numthreads(threadGroupSize,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    for (int neighbourIndex = 0; neighbourIndex < boidCount; neighbourIndex++)
+    {
+        if (id.x != neighbourIndex)
+        {
+            Boid neighbour = boids[neighbourIndex];
+            float3 directionToNeighbour = neighbour.position - boids[id.x].position;
+            float squareDistance = directionToNeighbour.x * directionToNeighbour.x +
+                                   directionToNeighbour.y * directionToNeighbour.y +
+                                   directionToNeighbour.z * directionToNeighbour.z;
+
+            if (squareDistance < perceptionRadius * perceptionRadius)
+            {
+                boids[id.x].flockSize++;
+                boids[id.x].flockHeading += neighbour.direction;
+                boids[id.x].flockCenter += neighbour.position;
+
+                if (squareDistance < avoidanceRadius * avoidanceRadius)
+                {
+                    boids[id.x].separationHeading -= directionToNeighbour / squareDistance;
+                }
+            }
+            boids[id.x].flockSize = max(boids[id.x].flockSize, 1);
+            boids[id.x].flockSize = max(boids[id.x].flockSize, 1);
+            boids[id.x].flockCenter /= boids[id.x].flockSize;
+        }
+    }
+}

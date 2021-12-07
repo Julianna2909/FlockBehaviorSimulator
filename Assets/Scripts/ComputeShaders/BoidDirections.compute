@@ -1,0 +1,23 @@
+﻿#pragma kernel CSMain
+
+static const int threadGroupSize = 512;
+
+RWStructuredBuffer<float3> directions;
+
+int directionsCount;
+float goldenRatio;
+float angleIncrement;
+
+
+[numthreads(threadGroupSize,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float t = (float) id.x / directionsCount;
+    float inclination = acos(1 - 2 * t);
+    float azimuth = angleIncrement * id.x;
+
+    float x = sin(inclination) * cos(azimuth);
+    float y = sin(inclination) * sin(azimuth);
+    float z = cos(inclination);
+    directions[id.x] = float3(x, y, z);
+}
